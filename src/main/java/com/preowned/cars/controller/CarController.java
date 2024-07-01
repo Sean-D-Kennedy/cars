@@ -14,6 +14,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
+
 @RestController // is a Component
 @RequestMapping(path="/cars", produces = MediaType.APPLICATION_JSON_VALUE) // works
 @AllArgsConstructor
@@ -22,7 +25,42 @@ public class CarController {
 
     //       /cars
     @GetMapping
-    public List<CarDTO> getAllCars(){return iCarService.getAllCars();}
+//    public List<CarDTO> getAllCars(){return iCarService.getAllCars();}
+    public List<CarDTO> getAllCars(){
+        List<CarDTO> carDTOList = iCarService.getAllCars();
+        for(CarDTO carDto : carDTOList){
+            // HATEOAS
+            // add() is a method in RepresentationModel
+            // linkTo() and methodOn() are both static methods in WebMvcLinkBuilder
+            //   - linkTo inspects the CarController class and gets the root mapping
+            //   - methodOn obtains the method mapping by making dummy invocations on the target method
+            //       - as they are dummy invocations, I can pass in 'null' where convenient
+            carDto.add(
+                    linkTo(
+                            methodOn(CarController.class)
+                                    .getAllCars()
+                    ).withSelfRel(),
+                    linkTo(
+                            methodOn(CarController.class)
+                                    .addCar(null, null)
+                    ).withRel("addCar"),
+                    linkTo(
+                            methodOn(CarController.class)
+                                    .getCarDetailsPath(carDto.getRegNo())
+                    ).withRel("getCar"),
+                    linkTo(
+                            methodOn(CarController.class)
+                                    .updateCar(carDto.getRegNo(), null)
+                    ).withRel("updateCar"),
+                    linkTo(
+                            methodOn(CarController.class)
+                                    .deleteCarDetails(carDto.getRegNo())
+                    ).withRel("deleteCar")
+
+            );
+        }
+        return carDTOList;
+    }
 
 
     @PostMapping
